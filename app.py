@@ -64,7 +64,15 @@ app = Flask(
 
 def open_browser():
     webbrowser.open_new("http://127.0.0.1:PORT".replace("PORT", str(PORT)))
-    
+
+
+def hhmm_to_seconds(s):
+    try:
+        h, m = map(int, s.split(":"))
+        return h * 3600 + m * 60
+    except Exception:
+        return 0
+
 
     
 @app.route("/", methods=["GET", "POST"])
@@ -105,6 +113,10 @@ def index():
                 vitesse_descente = float(request.form[f"vitesse_descente_{i}"])
                 temp_fin = int(request.form[f"temp_fin_{i}"])
                 name_str = request.form[f"name_{i}"]
+                p1_temp_str   = request.form.get(f"temp_cible_1_palier_{i}", "").strip()
+                p1_duree_str  = request.form.get(f"duree_maintien_1_palier_{i}", "").strip()
+                p1_vitesse_str= request.form.get(f"vitesse_montee_1_palier_{i}", "").strip()
+                has_p1 = bool(p1_temp_str) and bool(p1_duree_str) and bool(p1_vitesse_str)
                 print_log(f"Création de la courbe {i+1}", "INFO")
                 print_log(f"name :  {name_str}, temp_depart :  {temp_depart}, vitesse_montee :  {vitesse_montee}, duree_palier :  {duree_palier_str}, vitesse_descente :  {vitesse_descente},  temp_fin :  {temp_fin}", "INFO")
 
@@ -113,61 +125,90 @@ def index():
                 h, m = map(int, duree_palier_str.split(":"))
                 palier_seconds = h * 3600 + m * 60
                 
+                if has_p1:
+                    # ---------- Palier intermédiaire présent ----------
+                    temp_cible_1       = int(p1_temp_str)
+                    vitesse_montee_1   = float(p1_vitesse_str)
 
-                # Étape 1 - montée
-                delta_temp = temp_cible - temp_depart
-                duree_montee_sec = int((delta_temp / vitesse_montee) * 3600)
-                ramp_times = [start_time + timedelta(seconds=i) for i in range(duree_montee_sec)]
-                ramp_base = np.linspace(temp_depart, temp_cible, duree_montee_sec)
-                ramp_temps = ramp_base + np.sin(np.linspace(0, 50 * np.pi, duree_montee_sec))
+                    # Étape 1a - Montée jusqu'au 1er palier
+                    delta1 = temp_cible_1 - temp_depart
+                    duree1_sec = int((delta1 / max(vitesse_montee_1, 1e-9)) * 3600)
+                    ramp1_times = [start_time + timedelta(seconds=t) for t in range(max(duree1_sec, 0))]
+                    ramp1_base  = np.linspace(temp_depart, temp_cible_1, max(duree1_sec, 1))
+                    ramp1_temps = ramp1_base + np.sin(np.linspace(0, 50 * np.pi, max(duree1_sec, 1)))
 
-                # Étape 2 - palier
-                reach_temp_time = ramp_times[-1] if ramp_times else start_time
-                hold_times = [reach_temp_time + timedelta(seconds=i) for i in range(palier_seconds)]
-                hold_temps = temp_cible + np.sin(np.linspace(0, 60 * np.pi, palier_seconds))
+                    reach1_time = ramp1_times[-1] if ramp1_times else start_time
 
-                # Étape 3 - descente
-                duree_descente_sec = int(((temp_cible - temp_fin) / vitesse_descente) * 3600)
-                hold_end_time = hold_times[-1] if hold_times else reach_temp_time
-                cool_times = [hold_end_time + timedelta(seconds=i) for i in range(duree_descente_sec)]
-                cool_base = np.linspace(temp_cible, temp_fin, duree_descente_sec)
-                cool_temps = cool_base + np.sin(np.linspace(0, 40 * np.pi, duree_descente_sec))
+                    # Étape 1b - Palier 1 (maintien à temp_cible_1)
+                    hold1_times = [reach1_time + timedelta(seconds=t) for t in range(palier_seconds)]
+                    hold1_temps = temp_cible_1 + np.sin(np.linspace(0, 60 * np.pi, palier_seconds))
 
-                # Agrégation
-                all_times = ramp_times + hold_times + cool_times
-                all_temps = np.concatenate([ramp_temps, hold_temps, cool_temps])
-                label = f"{name_str} - "
+                    # Étape 1c - Montée finale jusqu'à temp_cible (avec vitesse_montee "finale")
+                    delta2 = temp_cible - temp_cible_1
+                    start2_time = hold1_times[-1] if hold1_times else reach1_time
+                    duree2_sec  = int((delta2 / max(vitesse_montee, 1e-9)) * 3600)
+                    ramp2_times = [start2_time + timedelta(seconds=t) for t in range(max(duree2_sec, 0))]
+                    ramp2_base  = np.linspace(temp_cible_1, temp_cible, max(duree2_sec, 1))
+                    ramp2_temps = ramp2_base + np.sin(np.linspace(0, 50 * np.pi, max(duree2_sec, 1)))
+
+                    reach_final_time = ramp2_times[-1] if ramp2_times else start2_time
+
+                    # Étape 2 - Palier final (maintien à temp_cible)
+                    hold_times = [reach_final_time + timedelta(seconds=t) for t in range(palier_seconds)]
+                    hold_temps = temp_cible + np.sin(np.linspace(0, 60 * np.pi, palier_seconds))
+
+                    # Étape 3 - Descente
+                    duree_descente_sec = int(((temp_cible - temp_fin) / max(vitesse_descente, 1e-9)) * 3600)
+                    hold_end_time = hold_times[-1] if hold_times else reach_final_time
+                    cool_times = [hold_end_time + timedelta(seconds=t) for t in range(max(duree_descente_sec, 0))]
+                    cool_base  = np.linspace(temp_cible, temp_fin, max(duree_descente_sec, 1))
+                    cool_temps = cool_base + np.sin(np.linspace(0, 40 * np.pi, max(duree_descente_sec, 1)))
+
+                    # Agrégation (avec palier 1)
+                    all_times = ramp1_times + hold1_times + ramp2_times + hold_times + cool_times
+                    all_temps = np.concatenate([ramp1_temps, hold1_temps, ramp2_temps, hold_temps, cool_temps])
+
+                else:
+                    # Étape 1 - montée final 
+                    delta_temp = temp_cible - temp_depart
+                    duree_montee_sec = int((delta_temp / vitesse_montee) * 3600)
+                    ramp_times = [start_time + timedelta(seconds=i) for i in range(duree_montee_sec)]
+                    ramp_base = np.linspace(temp_depart, temp_cible, duree_montee_sec)
+                    ramp_temps = ramp_base + np.sin(np.linspace(0, 50 * np.pi, duree_montee_sec))
+
+                    # Étape 2 - palier final 
+                    reach_temp_time = ramp_times[-1] if ramp_times else start_time
+                    hold_times = [reach_temp_time + timedelta(seconds=i) for i in range(palier_seconds)]
+                    hold_temps = temp_cible + np.sin(np.linspace(0, 60 * np.pi, palier_seconds))
+
+                    # Étape 3 - descente
+                    duree_descente_sec = int(((temp_cible - temp_fin) / vitesse_descente) * 3600)
+                    hold_end_time = hold_times[-1] if hold_times else reach_temp_time
+                    cool_times = [hold_end_time + timedelta(seconds=i) for i in range(duree_descente_sec)]
+                    cool_base = np.linspace(temp_cible, temp_fin, duree_descente_sec)
+                    cool_temps = cool_base + np.sin(np.linspace(0, 40 * np.pi, duree_descente_sec))
+
+                    # Agrégation
+                    all_times = ramp_times + hold_times + cool_times
+                    all_temps = np.concatenate([ramp_temps, hold_temps, cool_temps])
+                    label = f"{name_str} - "
                 
                 all_times_list.append(all_times)
                 all_temps_list.append(all_temps)
                 labels_list.append(request.form[f"name_{i}"])
-
-                # Graphique
-               # plt.plot(all_times, all_temps, color=colors[i % len(colors)], linewidth=0.9, label=f"{name_str}")
                 
             title_str = f"Cycle thermique - {nom_client} - {numero_commande} - {nom_four} - {full_date.strftime('%d/%m/%Y')} à {full_date.strftime('%H:%M')}"
             download_name_str = f"{nom_client}_{numero_commande}_{nom_four}_{full_date.strftime('%Y%m%d_%H%M%S')}"
            
-             # 1) Entête (template en dur)
+            
             draw_header(ax_header, logo_path=LOGO_PATH)
             draw_thermal_plot(ax_plot, all_times_list, all_temps_list, labels_list, colors, title_str)
             draw_footer(ax_footer)
-
             fig.tight_layout()
-
-            # plt.title(title_str, fontsize=14)
-            # plt.xlabel("Heure", fontsize=12)
-            # plt.ylabel("Température (°C)", fontsize=12)
-            # plt.grid(True)
-            # plt.legend()
-            # #plt.ylim(0, temp_cible + 100)
-            # plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-            # plt.gcf().autofmt_xdate()
-            # plt.tight_layout()
             
             
             # Sauvegarde
-            # print_log(f"Création du dossier static si non existant", "WARN")
+            print_log(f"Création du dossier static si non existant", "WARN")
             os.makedirs("static", exist_ok=True)
             plt.savefig("static/output.png", dpi=300)
             plt.savefig("static/output.pdf", dpi=300)

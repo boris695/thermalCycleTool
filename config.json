@@ -3,5 +3,5 @@
   "version": "1.0.1",
   "default_port": 5000,
   "default_browser_delay": 1.5,
-  "test": true
+  "test": false
 }

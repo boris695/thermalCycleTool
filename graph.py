@@ -5,7 +5,7 @@ import matplotlib.image as mpimg
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 
-def draw_header(ax_header, logo_path=None):
+def draw_header(ax_header, logo_path=None, title_str=""):
     ax_header.axis("off")  # pas d'axes visibles
     ax_header.set_xlim(0, 1)
     ax_header.set_ylim(0, 1)
@@ -14,16 +14,14 @@ def draw_header(ax_header, logo_path=None):
     if logo_path and os.path.exists(logo_path):
         try:
             img = mpimg.imread(logo_path)
-            oi = OffsetImage(img, zoom=1)
-            #ab = AnnotationBbox(
-            #    oi, (0.06, 0.92),
-            #    frameon=False,
-            #    xycoords=ax_header.transAxes,
-            #    box_alignment=(0, 1)  # ancre le coin supérieur gauche du logo au point
-            #)
-            #ax_header.add_artist(ab)
-            ax_header.imshow(img, extent=(0.02, 0.14, 0.72, 0.98), aspect='auto')
-            x_text = 0.20  # texte décale à droite du logo
+            oi = OffsetImage(img, zoom=0.75)
+            ab = AnnotationBbox(
+                oi, (0.06, 0.92),
+                frameon=False,
+                xycoords=ax_header.transAxes,
+                box_alignment=(0, 1)  # ancre le coin supérieur gauche du logo au point
+            )
+            ax_header.add_artist(ab)
         except Exception as e:
             print_log(f"Logo non exploitable: {e}", "WARN")
 
@@ -34,16 +32,15 @@ def draw_header(ax_header, logo_path=None):
     
     # Ligne de séparation + titre du cycle
     #ax_header.axhline(y=0.20, xmin=0.02, xmax=0.98, color="#999999", linewidth=1.5)
-    #ax_header.text(0.00, 0.12, title_str, fontsize=12, fontweight='normal', va='top', ha='left', transform=ax_header.transAxes)
+  
 
-
-def draw_thermal_plot(ax_plot, all_times, all_temps, labels, colors, title_str):
+def draw_thermal_plot(ax_plot, all_times, all_temps, labels, colors, title_str=""):
     """
     Dessine le graphe thermique dans l'axe 'ax_plot'.
     """
     import matplotlib.dates as mdates
 
-    #ax_plot.title(title_str, fontsize=14)
+    ax_plot.set_title(title_str, fontsize=14)
     for i, (times, temps) in enumerate(zip(all_times, all_temps)):
         ax_plot.plot(times, temps, color=colors[i % len(colors)], linewidth=0.9, label=labels[i])
 
