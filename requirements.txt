@@ -1,3 +1,5 @@
 flask
 matplotlib
 numpy
+Pillow
+reportlab

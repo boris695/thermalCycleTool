@@ -12,17 +12,17 @@
    <form method="post" class="row g-4">
       <div class="col-md-4">
             <label for="nom_client" class="form-label">Nom client</label>
-            <input type="text" class="form-control" name="nom_client" value="{{ nom_client }}" required>
+            <input type="text" class="form-control" name="nom_client" {% if test_mode  %} value= "nom_client"{% endif %} required>
         </div>
         <div class="col-md-4">
             <label for="numero_commande" class="form-label">Numéro de commande</label>
-            <input type="text" class="form-control" name="numero_commande"  value="{{ numero_commande }}" required>
+            <input type="text" class="form-control" name="numero_commande"  {% if test_mode  %} value="numero_commande" {% endif %}  required>
         </div>
         <div class="col-md-4">
             <label for="nom_four" class="form-label">Nom du four</label>
             <select class="form-select" name="nom_four">
-                <option value="Delage" {% if nom_four == "Delage" %}selected{% endif %}>Delage</option>
                 <option value="Stein" {% if nom_four == "Stein" %}selected{% endif %}>Stein</option>
+                <option value="Delage" {% if nom_four == "Delage" %}selected{% endif %}>Delage</option>
             </select>
         </div>
         <div class="col-md-4"> 
@@ -31,7 +31,7 @@
         </div>
         <div class="col-md-4">
             <label for="heure_depart" class="form-label">Heure de départ (hh:mm)</label>
-            <input type="time" class="form-control" id="heure_depart" name="heure_depart" value="{{ heure_depart }}" required>
+            <input type="time" class="form-control" id="heure_depart" name="heure_depart" {% if test_mode  %} value="10:00" {% endif %} required>
         </div>
          <div class="col-md-4">
             <label for="nb_courbes" class="form-label">Nombre de courbes</label>
@@ -83,27 +83,27 @@
         <div class="row g-3">
           <div class="col-md-4">
             <label for="temp_cible_${i}" class="form-label">Temp. cible (°C)</label>
-            <input type="number" class="form-control" id="temp_cible_${i}" name="temp_cible_${i}" required>
+            <input type="number" class="form-control" id="temp_cible_${i}" name="temp_cible_${i}" {% if test_mode  %} value="250" {% endif %}  required>
           </div>
           <div class="col-md-4">
             <label for="temp_depart_${i}" class="form-label">Temp. départ (°C)</label>
-            <input type="number" class="form-control" id="temp_depart_${i}" name="temp_depart_${i}" required>
+            <input type="number" class="form-control" id="temp_depart_${i}" name="temp_depart_${i}" {% if test_mode  %} value="50" {% endif %}  required>
           </div>
           <div class="col-md-4">
             <label for="vitesse_montee_${i}" class="form-label">Vitesse montée (°C/h)</label>
-            <input type="number" class="form-control" id="vitesse_montee_${i}" name="vitesse_montee_${i}" required>
+            <input type="number" class="form-control" id="vitesse_montee_${i}" name="vitesse_montee_${i}" {% if test_mode  %} value="50" {% endif %}  required>
           </div>
           <div class="col-md-4">
             <label for="duree_palier_${i}" class="form-label">Durée palier (h:mm)</label>
-            <input type="time" class="form-control" id="duree_palier_${i}" name="duree_palier_${i}" required>
+            <input type="time" class="form-control" id="duree_palier_${i}" name="duree_palier_${i}" {% if test_mode  %} value="01:00" {% endif %} required>
           </div>
           <div class="col-md-4">
             <label for="temp_fin_${i}" class="form-label">Temp. fin (°C)</label>
-            <input type="number" class="form-control" id="temp_fin_${i}" name="temp_fin_${i}" required>
+            <input type="number" class="form-control" id="temp_fin_${i}" name="temp_fin_${i}" {% if test_mode  %} value="50" {% endif %}  required>
           </div>
           <div class="col-md-4">
             <label for="vitesse_descente_${i}" class="form-label">Vitesse descente (°C/h)</label>
-            <input type="number" class="form-control" id="vitesse_descente${i}" name="vitesse_descente_${i}" required>
+            <input type="number" class="form-control" id="vitesse_descente${i}" name="vitesse_descente_${i}"  {% if test_mode  %} value="50" {% endif %}  required>
           </div>
         <div> 
       `;
