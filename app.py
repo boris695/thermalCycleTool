@@ -1,0 +1,163 @@
+from flask import Flask, render_template, request, send_file
+from werkzeug.utils import safe_join
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from datetime import datetime, timedelta
+import numpy as np
+import os
+from time import time
+import webbrowser
+import threading
+import sys
+import json
+from log import print_log
+
+def load_config():
+    path = resource_path("config.json")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+    
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+config = load_config()
+APP_VERSION = config["version"]
+APP_NAME = config["app_name"]
+PORT = config["default_port"]
+BROWSER_DELAY = config["default_browser_delay"]
+TEST_MODE = config.get("test", False)
+timestamp = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+
+print_log(f"******************************************************************************", "TITLE")
+print_log(f"******************************************************************************", "TITLE")
+print_log(f"***********************  Démarrage de l'application   ************************", "TITLE")
+print_log(f"***********************  NOM : {APP_NAME}       ************************", "TITLE")
+print_log(f"***********************  VERSION : {APP_VERSION}              ************************", "TITLE")
+print_log(f"***********************  DATE : {timestamp}   ************************", "TITLE")
+print_log(f"***********************  TEST MODE : {TEST_MODE}             ************************", "TITLE")
+print_log(f"******************************************************************************", "TITLE")
+print_log(f"******************************************************************************", "TITLE")
+app = Flask(
+    __name__,
+    template_folder=resource_path("templates"),
+    static_folder=resource_path("static")
+)
+
+def open_browser():
+    webbrowser.open_new("http://127.0.0.1:PORT".replace("PORT", str(PORT)))
+    
+
+    
+@app.route("/", methods=["GET", "POST"])
+def index():
+    global download_name_str
+    image_generated = False
+    if request.method == "POST":
+        try:
+            # Récupération des paramètres
+            print_log(f"Génération du graphique", "INFO")
+            date_str = request.form.get("date", datetime.today().strftime("%Y-%m-%d"))
+            nom_client = request.form.get("nom_client")
+            numero_commande = request.form.get("numero_commande")
+            nom_four = request.form.get("nom_four")
+            heure_depart_str = request.form[f"heure_depart"]    
+            nb_courbes = int(request.form.get("nb_courbes", 1))
+            start_time = datetime.strptime(heure_depart_str, "%H:%M")
+            full_date = datetime.strptime(date_str, "%Y-%m-%d").replace(hour=start_time.hour, minute=start_time.minute)
+            colors = ['red', 'blue', 'green', 'orange', 'purple']
+            plt.figure(figsize=(12, 5))
+            print_log(f"nom_client :  {nom_client}, numero_commande :  {numero_commande}, nom_four :  {nom_four}, date :  {date_str}, heure_depart :  {heure_depart_str}, nb_courbes :  {nb_courbes}", "INFO")
+
+            
+            for i in range(nb_courbes):
+                temp_depart = int(request.form[f"temp_depart_{i}"])
+                vitesse_montee = float(request.form[f"vitesse_montee_{i}"])
+                temp_cible = int(request.form[f"temp_cible_{i}"])
+                duree_palier_str = request.form[f"duree_palier_{i}"]
+                vitesse_descente = float(request.form[f"vitesse_descente_{i}"])
+                temp_fin = int(request.form[f"temp_fin_{i}"])
+                name_str = request.form[f"name_{i}"]
+                print_log(f"Création de la courbe {i+1}", "INFO")
+                print_log(f"name :  {name_str}, temp_depart :  {temp_depart}, vitesse_montee :  {vitesse_montee}, duree_palier :  {duree_palier_str}, vitesse_descente :  {vitesse_descente},  temp_fin :  {temp_fin}", "INFO")
+
+                # Parsing
+                
+                h, m = map(int, duree_palier_str.split(":"))
+                palier_seconds = h * 3600 + m * 60
+                
+
+                # Étape 1 - montée
+                delta_temp = temp_cible - temp_depart
+                duree_montee_sec = int((delta_temp / vitesse_montee) * 3600)
+                ramp_times = [start_time + timedelta(seconds=i) for i in range(duree_montee_sec)]
+                ramp_base = np.linspace(temp_depart, temp_cible, duree_montee_sec)
+                ramp_temps = ramp_base + np.sin(np.linspace(0, 50 * np.pi, duree_montee_sec))
+
+                # Étape 2 - palier
+                reach_temp_time = ramp_times[-1] if ramp_times else start_time
+                hold_times = [reach_temp_time + timedelta(seconds=i) for i in range(palier_seconds)]
+                hold_temps = temp_cible + np.sin(np.linspace(0, 60 * np.pi, palier_seconds))
+
+                # Étape 3 - descente
+                duree_descente_sec = int(((temp_cible - temp_fin) / vitesse_descente) * 3600)
+                hold_end_time = hold_times[-1] if hold_times else reach_temp_time
+                cool_times = [hold_end_time + timedelta(seconds=i) for i in range(duree_descente_sec)]
+                cool_base = np.linspace(temp_cible, temp_fin, duree_descente_sec)
+                cool_temps = cool_base + np.sin(np.linspace(0, 40 * np.pi, duree_descente_sec))
+
+                # Agrégation
+                all_times = ramp_times + hold_times + cool_times
+                all_temps = np.concatenate([ramp_temps, hold_temps, cool_temps])
+                label = f"{name_str} - "
+                # Graphique
+                plt.plot(all_times, all_temps, color=colors[i % len(colors)], linewidth=0.9, label=f"{name_str}")
+                
+            title_str = f"Cycle thermique - {nom_client} - {numero_commande} - {nom_four} - {full_date.strftime('%d/%m/%Y')} à {full_date.strftime('%H:%M')}"
+            download_name_str = f"{nom_client}_{numero_commande}_{nom_four}_{full_date.strftime('%Y%m%d_%H%M%S')}"
+            
+            plt.title(title_str, fontsize=14)
+            plt.xlabel("Heure", fontsize=12)
+            plt.ylabel("Température (°C)", fontsize=12)
+            plt.grid(True)
+            plt.legend()
+            #plt.ylim(0, temp_cible + 100)
+            plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+            plt.gcf().autofmt_xdate()
+            plt.tight_layout()
+            # Sauvegarde
+            print_log(f"Création du dossier static si non existant", "WARN")
+            os.makedirs("static", exist_ok=True)
+            plt.savefig("static/output.png", dpi=300)
+            plt.savefig("static/output.pdf", dpi=300)
+            plt.close()
+            
+            print_log(f"Graphique {title_str} sauvegardé dans static/output", "INFO")
+            image_generated = True
+        except Exception as e:
+            print(e)
+            print_log(e, "ERROR")
+            return f"Erreur : {str(e)}", 500
+
+    return render_template(
+    "index.html",
+    image_generated=image_generated,
+    timestamp=time(),
+    app_name=APP_NAME,
+    app_version=APP_VERSION
+    )
+
+@app.route("/download/<filetype>")
+def download_file(filetype):
+    filename_on_disk = safe_join(app.static_folder, f"output.{filetype}")
+    if download_name_str:
+        download_name =  f"{download_name_str}.{filetype}"
+    else:
+        download_name = filename_on_disk
+    print_log(f"Téléchargement du fichier {download_name}", "INFO")
+    return send_file(filename_on_disk, as_attachment=True, download_name=download_name)
+
+if __name__ == "__main__":
+    threading.Timer(BROWSER_DELAY, open_browser).start()
+    app.run(host="127.0.0.1", port=PORT)

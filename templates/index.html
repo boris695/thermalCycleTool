@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Générateur de Cycle Thermique</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light p-5">
+  <div class="container">
+    <h1 class="mb-4">Générateur de Cycle Thermique</h1>
+
+   <form method="post" class="row g-4">
+      <div class="col-md-4">
+            <label for="nom_client" class="form-label">Nom client</label>
+            <input type="text" class="form-control" name="nom_client" value="{{ nom_client }}" required>
+        </div>
+        <div class="col-md-4">
+            <label for="numero_commande" class="form-label">Numéro de commande</label>
+            <input type="text" class="form-control" name="numero_commande"  value="{{ numero_commande }}" required>
+        </div>
+        <div class="col-md-4">
+            <label for="nom_four" class="form-label">Nom du four</label>
+            <select class="form-select" name="nom_four">
+                <option value="Delage" {% if nom_four == "Delage" %}selected{% endif %}>Delage</option>
+                <option value="Stein" {% if nom_four == "Stein" %}selected{% endif %}>Stein</option>
+            </select>
+        </div>
+        <div class="col-md-4"> 
+            <label for="date" class="form-label">Date du cycle</label> 
+            <input type="date" class="form-control" id="date"  name="date" value="{{ date }}"> 
+        </div>
+        <div class="col-md-4">
+            <label for="heure_depart" class="form-label">Heure de départ (hh:mm)</label>
+            <input type="time" class="form-control" id="heure_depart" name="heure_depart" value="{{ heure_depart }}" required>
+        </div>
+         <div class="col-md-4">
+            <label for="nb_courbes" class="form-label">Nombre de courbes</label>
+            <select class="form-select" name="nb_courbes" id="nb_courbes" onchange="updateCurves()">
+                {% for i in range(1, 6) %}
+                <option value="{{ i }}">{{ i }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div id="curve_inputs" class="row g-4 mt-3">
+            <!-- JS injectera les blocs ici -->
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn btn-primary">Générer</button>
+        </div>
+    </form>
+
+    {% if image_generated %}
+    <hr class="my-4">
+    <h4>Résultat :</h4>
+    <div class="text-center"> 
+      <img src="{{ url_for('static', filename='output.png') }}?t={{ timestamp }}" class="img-fluid" alt="Graphe thermique" style="max-width: 800px; height: auto;">
+    </div>
+    <div>
+      <a href="{{ url_for('download_file', filetype='png') }}" class="btn btn-success me-2">Télécharger PNG</a>
+      <a href="{{ url_for('download_file', filetype='pdf') }}" class="btn btn-secondary">Télécharger PDF</a>
+    </div>
+    {% endif %}
+  </div>
+  <hr class="mt-5">
+  <footer class="text-center text-muted">
+        {{ app_name }}  v{{ app_version }}
+  </footer>
+  <script>
+  function updateCurves() {
+    const container = document.getElementById("curve_inputs");
+    const nb = parseInt(document.getElementById("nb_courbes").value);
+    container.innerHTML = '';
+    for (let i = 0; i < nb; i++) {
+      container.innerHTML += `
+        <h5 class="card-title mb-3">Courbe ${i + 1}</h5>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label for="name_${i}" class="form-label">Nom de la courbe</label>
+            <input type="text" class="form-control" id="name_${i}" name="name_${i}" required>
+          </div>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label for="temp_cible_${i}" class="form-label">Temp. cible (°C)</label>
+            <input type="number" class="form-control" id="temp_cible_${i}" name="temp_cible_${i}" required>
+          </div>
+          <div class="col-md-4">
+            <label for="temp_depart_${i}" class="form-label">Temp. départ (°C)</label>
+            <input type="number" class="form-control" id="temp_depart_${i}" name="temp_depart_${i}" required>
+          </div>
+          <div class="col-md-4">
+            <label for="vitesse_montee_${i}" class="form-label">Vitesse montée (°C/h)</label>
+            <input type="number" class="form-control" id="vitesse_montee_${i}" name="vitesse_montee_${i}" required>
+          </div>
+          <div class="col-md-4">
+            <label for="duree_palier_${i}" class="form-label">Durée palier (h:mm)</label>
+            <input type="time" class="form-control" id="duree_palier_${i}" name="duree_palier_${i}" required>
+          </div>
+          <div class="col-md-4">
+            <label for="temp_fin_${i}" class="form-label">Temp. fin (°C)</label>
+            <input type="number" class="form-control" id="temp_fin_${i}" name="temp_fin_${i}" required>
+          </div>
+          <div class="col-md-4">
+            <label for="vitesse_descente_${i}" class="form-label">Vitesse descente (°C/h)</label>
+            <input type="number" class="form-control" id="vitesse_descente${i}" name="vitesse_descente_${i}" required>
+          </div>
+        <div> 
+      `;
+    }
+  }
+
+  window.onload = updateCurves;
+</script>
+</body>
+</html>
