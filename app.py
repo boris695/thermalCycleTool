@@ -47,7 +47,6 @@ PORT = config["default_port"]
 BROWSER_DELAY = config["default_browser_delay"]
 TEST_MODE = config.get("test", False)
 timestamp = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-img_path = "static/output"
 plt.ioff()
 
 
@@ -76,6 +75,8 @@ app = Flask(
     template_folder=resource_path("templates"),
     static_folder=resource_path("static")
 )
+
+img_path = os.path.join(app.static_folder, "output")
 
 def open_browser():
     webbrowser.open_new("http://127.0.0.1:PORT".replace("PORT", str(PORT)))
@@ -258,8 +259,9 @@ def download_file(filetype):
     return send_file(filename_on_disk, as_attachment=True, download_name=download_name)
 
 def delete_and_save_file(plt):
-    png_name = img_path + "/output.png"
-    pdf_name = img_path + "/output.pdf"
+    png_name = os.path.join(img_path, "output.png")
+    pdf_name = os.path.join(img_path, "output.pdf")
+
     # Création du dossier
     os.makedirs(img_path, exist_ok=True)
     for file in [png_name, pdf_name]:

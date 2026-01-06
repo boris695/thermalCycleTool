@@ -1,6 +1,6 @@
 {
   "app_name": "thermalCycleTool",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "default_port": 5000,
   "default_browser_delay": 1.5,
   "test": false
