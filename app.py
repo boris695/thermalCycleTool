@@ -1,19 +1,33 @@
+# --- IMPORTS STANDARD ---
 from flask import Flask, render_template, request, send_file
 from werkzeug.utils import safe_join
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from datetime import datetime, timedelta
-import numpy as np
+
+
+import matplotlib
+matplotlib.use("Agg")
+
+
 import os
-from time import time
-import webbrowser
-import threading
 import sys
 import json
+import shutil
+import threading
+import webbrowser
+from time import time
+from datetime import datetime, timedelta
+
+import numpy as np
+
+# --- MATPLOTLIB (après le backend Agg) ---
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import matplotlib.gridspec as gridspec
+# Si tu affiches des images via imshow() dans tes fonctions header/footer :
+import matplotlib.image as mpimg  # OK si tu l'utilises dans graph.py ou ici
+
+# --- MODULES PROJET ---
 from log import print_log
 from graph import draw_footer, draw_thermal_plot, draw_header
-import matplotlib.gridspec as gridspec
-import matplotlib.image as mpimg
 
 
 def load_config():
@@ -33,7 +47,8 @@ PORT = config["default_port"]
 BROWSER_DELAY = config["default_browser_delay"]
 TEST_MODE = config.get("test", False)
 timestamp = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-
+img_path = "static/output"
+plt.ioff()
 
 
 
@@ -81,8 +96,12 @@ def index():
     image_generated = False
     if request.method == "POST":
         try:
+            if os.path.exists(img_path):
+                shutil.rmtree(img_path)
+
             # Récupération des paramètres
             print_log(f"Génération du graphique", "INFO")
+            plt.close('all')
             date_str = request.form.get("date", datetime.today().strftime("%Y-%m-%d"))
             nom_client = request.form.get("nom_client")
             numero_commande = request.form.get("numero_commande")
@@ -212,7 +231,7 @@ def index():
             delete_and_save_file(plt)
             plt.close()
             
-            print_log(f"Graphique {title_str} sauvegardé dans static/output", "INFO")
+            print_log(f"Graphique {title_str} sauvegardé dans {img_path}", "INFO")
             image_generated = True
         except Exception as e:
             print(e)
@@ -230,7 +249,7 @@ def index():
 
 @app.route("/download/<filetype>")
 def download_file(filetype):
-    filename_on_disk = safe_join(app.static_folder, f"output.{filetype}")
+    filename_on_disk = safe_join(app.static_folder, "output", f"output.{filetype}")
     if download_name_str:
         download_name =  f"{download_name_str}.{filetype}"
     else:
@@ -239,16 +258,11 @@ def download_file(filetype):
     return send_file(filename_on_disk, as_attachment=True, download_name=download_name)
 
 def delete_and_save_file(plt):
-    png_name = "static/output.png"
-    pdf_name = "static/output.pdf"
+    png_name = img_path + "/output.png"
+    pdf_name = img_path + "/output.pdf"
     # Création du dossier
-    os.makedirs("static", exist_ok=True)
+    os.makedirs(img_path, exist_ok=True)
     for file in [png_name, pdf_name]:
-        if os.path.exists(file):
-            try:
-                os.remove(file)
-            except Exception as e:
-                print(f"Impossible de supprimer {file}: {e}")
         plt.savefig(file, dpi=300)
 
 
