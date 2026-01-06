@@ -14,7 +14,7 @@ def draw_header(ax_header, logo_path=None, title_str=""):
     if logo_path and os.path.exists(logo_path):
         try:
             img = mpimg.imread(logo_path)
-            oi = OffsetImage(img, zoom=0.75)
+            oi = OffsetImage(img, zoom=0.20)
             ab = AnnotationBbox(
                 oi, (0.06, 0.92),
                 frameon=False,
@@ -26,9 +26,9 @@ def draw_header(ax_header, logo_path=None, title_str=""):
             print_log(f"Logo non exploitable: {e}", "WARN")
 
     # Lignes du template
-    ax_header.text(0.50, 0.80, "FABRICATION DE FOND DE CUVE A CHAUD OU A FROID", fontsize=12, fontweight='bold', va='top', ha='left', transform=ax_header.transAxes)
+    ax_header.text(0.50, 0.80, "FABRICATION DE TOUT TYPES DE FOND A CHAUD ou A FROID", fontsize=12, fontweight='bold', va='top', ha='left', transform=ax_header.transAxes)
     ax_header.text(0.50, 0.65, "RAITEMENT THERMIQUE", fontsize=12, fontweight='bold', va='top', ha='left', transform=ax_header.transAxes)
-    ax_header.text(0.50, 0.50, "GRENAILLAGE, SABLAGE, PEINTURE INDUSTRIELLE", fontsize=12, fontweight='bold', va='top', ha='left', transform=ax_header.transAxes)
+    ax_header.text(0.50, 0.50, "GRENAILLAGE, PEINTURE INDUSTRIELLE", fontsize=12, fontweight='bold', va='top', ha='left', transform=ax_header.transAxes)
     
     # Ligne de séparation + titre du cycle
     #ax_header.axhline(y=0.20, xmin=0.02, xmax=0.98, color="#999999", linewidth=1.5)
@@ -65,7 +65,7 @@ def draw_footer(ax_footer):
     # Texte (en axes coords)
     # Centre
     ax_footer.text(0.50, 0.80, "BENIERE PERRIN", fontsize=12, fontweight='bold', ha='center', va='top', transform=ax_footer.transAxes)
-    ax_footer.text(0.50, 0.55, "Place Neyrand, BP12 - 42420 Lorette", fontsize=12, ha='center', va='top', transform=ax_footer.transAxes)
+    ax_footer.text(0.50, 0.55, "Place Neyrand, BP12", fontsize=12, ha='center', va='top', transform=ax_footer.transAxes)
     ax_footer.text(0.50, 0.30, "42420 Lorette, France", fontsize=12, ha='center', va='top', transform=ax_footer.transAxes)
     
     y =0.05

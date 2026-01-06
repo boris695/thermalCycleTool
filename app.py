@@ -209,9 +209,7 @@ def index():
             
             # Sauvegarde
             print_log(f"Création du dossier static si non existant", "WARN")
-            os.makedirs("static", exist_ok=True)
-            plt.savefig("static/output.png", dpi=300)
-            plt.savefig("static/output.pdf", dpi=300)
+            delete_and_save_file(plt)
             plt.close()
             
             print_log(f"Graphique {title_str} sauvegardé dans static/output", "INFO")
@@ -240,7 +238,18 @@ def download_file(filetype):
     print_log(f"Téléchargement du fichier {download_name}", "INFO")
     return send_file(filename_on_disk, as_attachment=True, download_name=download_name)
 
-
+def delete_and_save_file(plt):
+    png_name = "static/output.png"
+    pdf_name = "static/output.pdf"
+    # Création du dossier
+    os.makedirs("static", exist_ok=True)
+    for file in [png_name, pdf_name]:
+        if os.path.exists(file):
+            try:
+                os.remove(file)
+            except Exception as e:
+                print(f"Impossible de supprimer {file}: {e}")
+        plt.savefig(file, dpi=300)
 
 
 if __name__ == "__main__":
