@@ -149,6 +149,8 @@ def index():
                     # ---------- Palier intermédiaire présent ----------
                     temp_cible_1       = int(p1_temp_str)
                     vitesse_montee_1   = float(p1_vitesse_str)
+                    h1, m1 = map(int, p1_duree_str.split(":"))
+                    palier_seconds1 = h1 * 3600 + m1 * 60
 
                     # Étape 1a - Montée jusqu'au 1er palier
                     delta1 = temp_cible_1 - temp_depart
@@ -160,8 +162,8 @@ def index():
                     reach1_time = ramp1_times[-1] if ramp1_times else start_time
 
                     # Étape 1b - Palier 1 (maintien à temp_cible_1)
-                    hold1_times = [reach1_time + timedelta(seconds=t) for t in range(palier_seconds)]
-                    hold1_temps = temp_cible_1 + np.sin(np.linspace(0, 60 * np.pi, palier_seconds))
+                    hold1_times = [reach1_time + timedelta(seconds=t) for t in range(palier_seconds1)]
+                    hold1_temps = temp_cible_1 + np.sin(np.linspace(0, 60 * np.pi, palier_seconds1))
 
                     # Étape 1c - Montée finale jusqu'à temp_cible (avec vitesse_montee "finale")
                     delta2 = temp_cible - temp_cible_1
